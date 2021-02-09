@@ -1,0 +1,95 @@
+ using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+
+
+public class EnemyController : MonoBehaviour
+{
+    //How far can it look?
+    
+    
+    Transform Ptarget;
+    NavMeshAgent agent;
+  
+
+    public Transform target;
+
+    
+    
+    void Update()
+    {
+        
+        
+        
+        if(Infront() && HaveLineOfSight())
+        {
+
+            Debug.Log("spotted");
+            agent.SetDestination(target.position);
+            FaceTarget();
+           
+            
+        }
+
+        bool Infront()
+        {
+            Vector3 targetDir = target.position - transform.position;
+            float angle = Vector3.Angle(targetDir, transform.forward);
+
+            if (Mathf.Abs(angle) > 90 && Mathf.Abs(angle) < 270)
+            {
+                return true;
+            }
+
+            return false;
+
+
+
+        }
+
+        bool HaveLineOfSight()
+        {
+            RaycastHit hit;
+
+
+            Vector3 direction = target.position - transform.position;
+
+            if (Physics.Raycast(transform.position, direction, out hit))
+            {
+
+                //Debug.DrawLine(transform.position, hit.point);
+                //Debug.Log(hit.transform.tag);
+                if (hit.transform.CompareTag("Player"))
+                {
+                    return true;
+                    //Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.red);
+                }
+
+
+
+            }
+            return false;
+        }
+
+    }
+
+   
+
+
+    void FaceTarget ()
+    {
+        Vector3 direction = (target.position - transform.position).normalized;
+        Quaternion LookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, LookRotation, Time.deltaTime * 5f); 
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        // Draws a 5 unit long red line in front of the object
+        Gizmos.color = Color.red;
+        Vector3 direction = target.position - transform.position * 50;
+        Gizmos.DrawRay(transform.position, direction);
+    }
+
+}
