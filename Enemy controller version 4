@@ -1,0 +1,220 @@
+ using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.SceneManagement;
+using UnityEngine;
+using UnityEngine.AI;
+
+
+public class EnemyController : MonoBehaviour
+{
+    
+    
+    NavMeshAgent agent;
+    // Start is called before the first frame update
+    void Start()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        
+    }
+
+    public Transform target;
+    public Transform Gspot;
+    bool found = false;
+    public float DeathRadius = 2f;
+    float timer = 2f;
+    bool RayHit = false; 
+    void Update()
+    {
+       
+
+        Brain();
+
+        float TooClose = Vector3.Distance (target.position , transform.position);
+
+        if (TooClose <= DeathRadius)
+        {
+            //Endgame();
+        }
+
+
+    }
+
+    void Brain()
+    {
+        if (Spotted())
+        {
+
+            Debug.Log("spotted");
+            found = true;
+
+            if (found == true)
+            {
+               FaceTarget();
+                Hunt();
+                
+            }
+            
+        }
+        else
+        {
+            Debug.Log("cant see you");
+            //Search();
+        }
+
+    }
+
+    //Enemy will "hunt" the player
+    void Hunt()
+    {
+        agent.SetDestination(target.position);
+        // TO DO: Try and set the raycast hit position to be the destination.
+        if (agent.destination != target.position && Spotted())
+        {
+            
+            agent.ResetPath();
+            agent.destination = target.position;
+        }
+        else if (agent.destination != target.position && Spotted() == false)
+        {
+          Search();
+        }
+
+        Vector3 targetDir = target.position - transform.position;
+
+        Debug.Log("hunting");
+        Infront();
+        //HaveLineOfSight();
+        if (agent.pathPending)
+        {
+            Spotted();
+            Brain();
+            if (agent.remainingDistance <= agent.stoppingDistance)
+            {
+                Debug.Log("target reached");
+
+                if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
+                {
+                    
+                   // Debug.Log("stopped");
+                    
+                }
+
+
+            }
+        }
+    }
+    //after a timer countdown, return to the Gspot (currently not working)
+    void Search()
+    {
+        agent.ResetPath();
+        agent.destination = Gspot.position;
+        timer -= Time.deltaTime;
+        if (timer == 0f)
+        {
+            
+            agent.ResetPath();
+            agent.destination = Gspot.position;
+        }
+    }
+
+    bool Spotted()
+    {
+             if ( Infront() && RayHit && PlayerDistance())
+             {
+                return true;
+             }
+             else
+             {
+                return false;
+             }
+    }
+
+        //ensures that the player is in front of the enemy
+        bool Infront()
+        {
+            Vector3 targetDir = target.position - transform.position;
+            float angle = Vector3.Angle(targetDir, -transform.forward);
+
+            if (Mathf.Abs(angle) > 90 && Mathf.Abs(angle) < 270)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+            
+        }
+
+        //ensures that the player is not behind a wall
+        bool HaveLineOfSight()
+        {
+            RaycastHit hit;
+
+
+            Vector3 direction = target.position - transform.position;
+
+            if (Physics.Raycast(transform.position, direction, out hit))
+            {
+    
+                Debug.DrawLine(transform.position, hit.point);
+                Debug.Log(hit.transform.tag);
+                if (hit.transform.CompareTag("Player"))
+                {
+                    return true;
+                   //Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.red);
+                }
+                else
+                {
+                    return false;
+                }
+                
+            }
+           else
+           {
+               return false;
+           }
+            
+         }
+        //Checks that the player is close enough
+        bool PlayerDistance()
+        {
+          var dist = Vector3.Distance(target.position, transform.position);
+
+           if (dist < 25)
+           {
+            Debug.Log("In range");
+            return true;
+            
+           }
+           else
+           {
+            Debug.Log("Too far away");
+
+            return false;
+           }
+
+        }
+    //borrowed from Brackeys, makes enemy rotate to face the player
+    void FaceTarget()
+    {
+        Vector3 direction = (target.position - transform.position).normalized;
+        Quaternion LookRotation = Quaternion.LookRotation(new Vector3(direction.x, direction.y, direction.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, LookRotation, Time.deltaTime * 5f);
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        // Draws a 5 unit long red line in front of the object
+        Gizmos.color = Color.red;
+        Vector3 direction = target.position - transform.position * 1;
+        Gizmos.DrawRay(transform.position, direction);
+    }
+
+    void Endgame()
+    {
+       SceneManager.LoadScene("Game Over");
+    }
+    
+
+}
